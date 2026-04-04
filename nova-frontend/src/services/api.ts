@@ -1,7 +1,7 @@
 import axios, { InternalAxiosRequestConfig } from "axios";
 
 // ✅ Use environment variable (works for local + production)
-const API_BASE_URL = `${import.meta.env.VITE_BACKEND_URL}/api`;
+const API_BASE_URL = `${import.meta.env.VITE_BACKEND_URL.replace(/\/$/, "")}/api`;
 interface ImportMeta {
   env: {
     VITE_BACKEND_URL: string;
