@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "allowJs": true,
+    "types": ["vite/client"],
     "noImplicitAny": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
