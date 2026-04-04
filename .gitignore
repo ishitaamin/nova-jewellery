@@ -1,0 +1,16 @@
+# Node modules
+node_modules/
+nova-frontend/node_modules/
+nova-backend/node_modules/
+
+# Environment variables
+.env
+nova-frontend/.env
+nova-backend/.env
+
+# Build outputs
+nova-frontend/dist/
+nova-frontend/build/
+
+# OS generated files
+.DS_Store
