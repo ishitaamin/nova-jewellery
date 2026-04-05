@@ -1,23 +1,22 @@
 import axios, { InternalAxiosRequestConfig } from "axios";
 
-// ✅ Use environment variable (works for local + production)
-const API_BASE_URL = `${import.meta.env.VITE_BACKEND_URL.replace(/\/$/, "")}/api`;
-interface ImportMeta {
-  env: {
-    VITE_BACKEND_URL: string;
-    // Add other environment variables here if needed
-  };
-}
+// ✅ Backend URL from env
+const BASE_URL = import.meta.env.VITE_BACKEND_URL;
 
-export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+// ✅ Remove trailing slash safety
+const API_BASE_URL = `${BASE_URL.replace(/\/$/, "")}/api`;
+
+export const BACKEND_URL = BASE_URL;
 
 // ✅ Axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,
-  headers: { "Content-Type": "application/json" },
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
 
-// ✅ Attach JWT token to every request
+// ✅ Attach JWT token
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = localStorage.getItem("token");
 
@@ -90,7 +89,6 @@ export const cartAPI = {
 // ================= WISHLIST =================
 export const wishlistAPI = {
   get: () => api.get("/wishlist"),
-
   toggle: (productId: string) =>
     api.post("/wishlist", { productId }),
 };
@@ -98,10 +96,8 @@ export const wishlistAPI = {
 // ================= ORDERS =================
 export const ordersAPI = {
   getMyOrders: () => api.get("/orders/my"),
-
   create: (orderItems: any[], totalPrice: number) =>
     api.post("/orders", { orderItems, totalPrice }),
-
   getAll: () => api.get("/orders"),
 };
 
@@ -126,17 +122,14 @@ export const paymentAPI = {
 // ================= ADDRESS =================
 export const addressAPI = {
   getAll: () => api.get("/addresses"),
-
   add: (data: any) => api.post("/addresses", data),
-
   update: (id: string, data: any) =>
     api.put(`/addresses/${id}`, data),
-
   remove: (id: string) =>
     api.delete(`/addresses/${id}`),
 };
 
-// ================= USERS (ADMIN) =================
+// ================= USERS =================
 export const usersAPI = {
   getAll: () => api.get("/auth/users"),
 };
