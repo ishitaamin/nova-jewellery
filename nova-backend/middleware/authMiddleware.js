@@ -10,9 +10,7 @@ export const protect = async (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // ✅ REMOVE THIS RESTRICTION
-    // if (decoded.role !== "user") throw new Error("Only users allowed");
-
+    // ✅ Allow BOTH user and admin
     req.user = await User.findById(decoded.id).select("-password");
 
     if (!req.user) throw new Error("User not found");
