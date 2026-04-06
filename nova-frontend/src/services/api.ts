@@ -18,22 +18,38 @@ const api = axios.create({
 
 // ✅ Attach JWT token
 // ✅ Attach JWT token securely based on which panel the user is in
+// ✅ Attach JWT token securely based on which panel the user is in
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  // Check if the user is currently browsing the /admin pages
   const isAdminPanel = window.location.pathname.startsWith("/admin");
   
-  // Use the admin token for admin pages, and normal token for storefront
-  const token = isAdminPanel 
+  // Try to get the raw strings first
+  let token = isAdminPanel 
     ? localStorage.getItem("admin-token") 
     : localStorage.getItem("token");
 
+  // 🚨 SPY LOGS: Open your browser console (F12) to see this!
+  console.log("🛡️ INTERCEPTOR - Is Admin Panel?:", isAdminPanel);
+  console.log("🔑 INTERCEPTOR - Token Found in Local Storage?:", token ? "YES" : "NO");
+
+  // 💡 THE CATCH: Did you save the whole user object instead of just the token string?
+  // If "token" is null, let's check if you saved it as an object like "adminInfo" or "userInfo"
+  if (!token) {
+     const storedUser = localStorage.getItem(isAdminPanel ? "adminInfo" : "userInfo");
+     if (storedUser) {
+        const parsedUser = JSON.parse(storedUser);
+        token = parsedUser.token; 
+        console.log("🔑 INTERCEPTOR - Found token inside user object instead!");
+     }
+  }
+
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
+  } else {
+    console.warn("⚠️ INTERCEPTOR - Warning: Request is leaving without a token!");
   }
 
   return config;
 });
-
 // ================= AUTH =================
 export const authAPI = {
   register: (name: string, email: string, password: string) =>
