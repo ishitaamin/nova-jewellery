@@ -31,6 +31,7 @@ interface Order {
   totalPrice: number;
   isPaid: boolean;
   isDelivered: boolean;
+  status: string;
   createdAt: string;
   orderItems: OrderItem[];
 }
@@ -238,9 +239,13 @@ const Profile = () => {
                                 <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Total Amount</p>
                                 <p className="font-semibold">₹{order.totalPrice?.toLocaleString("en-IN")}</p>
                               </div>
-                              <span className={`px-3 py-1 text-xs font-medium rounded-full ${order.isDelivered ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800"}`}>
-                                {order.isDelivered ? "Delivered" : "Processing"}
-                              </span>
+                              <span className={`px-3 py-1 text-xs font-medium rounded-full border ${
+  order.status === "Delivered" ? "bg-green-100 text-green-800 border-green-200" :
+  order.status === "Shipped" ? "bg-blue-100 text-blue-800 border-blue-200" :
+  "bg-yellow-100 text-yellow-800 border-yellow-200"
+}`}>
+  {order.status || "Pending"}
+</span>
                             </div>
                           </div>
 

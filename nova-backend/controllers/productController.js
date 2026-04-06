@@ -69,49 +69,26 @@ export const getProductById = async (req, res, next) => {
 
 // @desc Create product (ADMIN)
 // ADMIN: Create product
-export const createProduct = async (req, res, next) => {
+export const createProduct = async (req, res) => {
   try {
-    const { name, price, category, countInStock } = req.body;
+    const { name, price, description, category, countInStock } = req.body;
+    
+    // ✅ Cloudinary automatically uploads it and puts the URL in req.file.path
+    const imageUrl = req.file ? req.file.path : "/images/placeholder.jpg"; 
 
-    if (!name || !price || !category) {
-      const err = new Error("Missing required fields");
-      err.statusCode = 400;
-      throw err;
-    }
-
-    let imageUrl = "";
-
-    // If using file upload (req.file)
-    if (req.file) {
-      const result = await cloudinary.v2.uploader.upload(req.file.path, {
-        folder: "products",
-        fetch_format: "auto", // ✅ Automatically delivers WebP/AVIF if browser supports it
-        quality: "auto",
-      });
-      imageUrl = result.secure_url;
-    } else if (req.body.image) {
-      // If frontend sends a URL directly
-      imageUrl = req.body.image;
-    } else {
-      const err = new Error("Product image is required");
-      err.statusCode = 400;
-      throw err;
-    }
-
-    const product = await Product.create({
+    const product = new Product({
       name,
       price,
+      description,
       category,
       countInStock,
-      image: imageUrl,
+      image: imageUrl, // ✅ Save Cloudinary URL to database
     });
 
-    res.status(201).json({
-      success: true,
-      product,
-    });
+    const createdProduct = await product.save();
+    res.status(201).json(createdProduct);
   } catch (error) {
-    next(error);
+    res.status(400).json({ message: "Product creation failed" });
   }
 };
 // @desc Delete product (ADMIN)

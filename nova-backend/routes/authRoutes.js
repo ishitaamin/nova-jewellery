@@ -8,6 +8,7 @@ import {
   loginUser,
   verifyOTP,
   forgotPassword,
+  adminLoginUser,
   resetPassword,
   getUsers
 } from "../controllers/authController.js";
@@ -48,6 +49,15 @@ router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
 
 
+
+// ADMIN LOGIN
+router.post(
+  "/admin-login",
+  body("email").isEmail().withMessage("Valid email required"),
+  body("password").notEmpty().withMessage("Password required"),
+  validate, 
+  adminLoginUser
+);
 
 router.get("/users", protect, admin, getUsers);
 

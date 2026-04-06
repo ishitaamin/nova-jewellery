@@ -5,20 +5,31 @@ import sendEmail from "../utils/sendEmail.js";
 
 // @desc Register User
 // @route POST /api/auth/register
+// @desc Register User
+// @route POST /api/auth/register
 export const registerUser = async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
 
+    // 🚨 DEBUGGING LOGS: This will print in your VS Code terminal!
+    console.log("---------------------------------------");
+    console.log("REGISTER ATTEMPT RECEIVED!");
+    console.log("Name sent:", name);
+    console.log("Email sent:", email); 
+    console.log("---------------------------------------");
+
     const userExists = await User.findOne({ email });
 
     if (userExists) {
+      // 🚨 DEBUGGING LOG: See EXACTLY what user it found in the database
+      console.log("❌ ERROR: Found this user in DB:", userExists);
       const error = new Error("User already exists");
       error.statusCode = 400;
       throw error;
     }
 
     const otp = generateOTP();
-    console.log(`Generated OTP for ${email}: ${otp}`); // ✅ LOG OTP FOR TESTING
+    console.log(`Generated OTP for ${email}: ${otp}`);
 
     const user = await User.create({
       name,
@@ -28,7 +39,6 @@ export const registerUser = async (req, res, next) => {
       otpExpiry: Date.now() + 10 * 60 * 1000,
     });
 
-    // ✅ SAFE EMAIL SENDING
     try {
       await sendEmail({
         to: email,
@@ -53,7 +63,6 @@ export const registerUser = async (req, res, next) => {
     next(error);
   }
 };
-
 
 // @desc Get all users (ADMIN ONLY)
 export const getUsers = async (req, res, next) => {
@@ -150,13 +159,54 @@ export const verifyOTP = async (req, res, next) => {
       _id: user._id,
       name: user.name,
       email: user.email,
-      token: generateToken(user._id),
+      token: generateToken(user._id,"admin"),
     });
   } catch (error) {
     next(error);
   }
 };
 
+// @desc Admin Login
+// @route POST /api/auth/admin-login
+export const adminLoginUser = async (req, res, next) => {
+  try {
+    const { email, password } = req.body;
+
+    const user = await User.findOne({ email }).select("+password");
+
+    if (!user) {
+      const error = new Error("Invalid email or password");
+      error.statusCode = 401;
+      throw error;
+    }
+
+    // ✅ Enforce Admin Only
+    if (!user.isAdmin) {
+      const error = new Error("Access denied. Not authorized as an admin.");
+      error.statusCode = 403;
+      throw error;
+    }
+
+    const isMatch = await user.matchPassword(password);
+
+    if (!isMatch) {
+      const error = new Error("Invalid email or password");
+      error.statusCode = 401;
+      throw error;
+    }
+
+    res.json({
+      success: true,
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      isAdmin: user.isAdmin,
+      token: generateToken(user._id,"admin"),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 // @desc Login User
 // @route POST /api/auth/login
 export const loginUser = async (req, res, next) => {
@@ -177,7 +227,11 @@ export const loginUser = async (req, res, next) => {
       error.statusCode = 401;
       throw error;
     }
-
+    if (user.isAdmin) {
+      const error = new Error("Admin credentials cannot be used here. Please use the Admin Portal.");
+      error.statusCode = 403;
+      throw error;
+    }
     // Compare password
     const isMatch = await user.matchPassword(password);
 
@@ -193,7 +247,7 @@ export const loginUser = async (req, res, next) => {
       name: user.name,
       email: user.email,
       isAdmin: user.isAdmin,
-      token: generateToken(user._id),
+      token: generateToken(user._id,"admin"),
     });
   } catch (error) {
     next(error);

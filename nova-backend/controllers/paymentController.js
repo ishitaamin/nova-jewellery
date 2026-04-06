@@ -1,4 +1,4 @@
-import getRazorpayInstance from "../config/razorpay.js"; // ✅ Import the function
+import getRazorpayInstance from "../config/razorpay.js";
 import crypto from "crypto";
 import Cart from "../models/Cart.js";
 import Order from "../models/Order.js";
@@ -8,15 +8,23 @@ import sendEmail from "../utils/sendEmail.js";
 // ✅ STEP 1: Create Razorpay Order
 export const createRazorpayOrder = async (req, res, next) => {
   try {
+    // ✅ Extract selectedItemIds sent from the frontend
+    const { selectedItemIds } = req.body;
+
     const cart = await Cart.findOne({ user: req.user._id }).populate("items.product");
 
     if (!cart || cart.items.length === 0) {
       return res.status(400).json({ message: "Cart is empty" });
     }
 
-    const validItems = cart.items.filter(item => item.product != null);
+    // ✅ Filter to keep ONLY the items the user checked in the UI
+    let validItems = cart.items.filter(item => item.product != null);
+    if (selectedItemIds && selectedItemIds.length > 0) {
+      validItems = validItems.filter(item => selectedItemIds.includes(item._id.toString()));
+    }
+
     if (validItems.length === 0) {
-      return res.status(400).json({ message: "All items in cart are no longer available" });
+      return res.status(400).json({ message: "No valid items selected for checkout" });
     }
 
     const itemTotal = validItems.reduce((acc, item) => acc + item.product.price * item.qty, 0);
@@ -24,12 +32,11 @@ export const createRazorpayOrder = async (req, res, next) => {
     const finalTotal = itemTotal + shippingPrice;
 
     const options = {
-      amount: finalTotal * 100,
+      amount: finalTotal * 100, // Amount in paise
       currency: "INR",
       receipt: `receipt_${Date.now()}`,
     };
 
-    // ✅ Instantiate Razorpay correctly!
     const razorpay = getRazorpayInstance(); 
     const razorpayOrder = await razorpay.orders.create(options);
 
@@ -48,7 +55,8 @@ export const createRazorpayOrder = async (req, res, next) => {
 // ✅ STEP 2: Verify Payment + Create Order
 export const verifyPayment = async (req, res, next) => {
   try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, shippingAddress } = req.body;
+    // ✅ Extract selectedItemIds here as well
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, shippingAddress, selectedItemIds } = req.body;
 
     const generatedSignature = crypto
       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
@@ -67,7 +75,12 @@ export const verifyPayment = async (req, res, next) => {
     const cart = await Cart.findOne({ user: req.user._id }).populate("items.product");
     if (!cart || cart.items.length === 0) return res.status(400).json({ message: "Cart is empty" });
 
-    const validItems = cart.items.filter(item => item.product != null);
+    // ✅ Filter valid items based on selection
+    let validItems = cart.items.filter(item => item.product != null);
+    if (selectedItemIds && selectedItemIds.length > 0) {
+      validItems = validItems.filter(item => selectedItemIds.includes(item._id.toString()));
+    }
+
     const itemTotal = validItems.reduce((acc, item) => acc + item.product.price * item.qty, 0);
     const shippingPrice = itemTotal >= 5000 ? 0 : 499;
     const finalTotal = itemTotal + shippingPrice;
@@ -95,8 +108,13 @@ export const verifyPayment = async (req, res, next) => {
       await Product.findByIdAndUpdate(item.product._id, { $inc: { countInStock: -item.qty } });
     }
 
-    // 🔥 Clear cart
-    await Cart.findOneAndDelete({ user: req.user._id });
+    // 🔥 INSTEAD of deleting the whole cart, we ONLY remove the items that were purchased
+    if (selectedItemIds && selectedItemIds.length > 0) {
+      cart.items = cart.items.filter(item => !selectedItemIds.includes(item._id.toString()));
+      await cart.save();
+    } else {
+      await Cart.findOneAndDelete({ user: req.user._id }); // Fallback
+    }
 
     // 📧 Send Email Receipt
     try {
@@ -116,7 +134,7 @@ export const verifyPayment = async (req, res, next) => {
         `,
       });
     } catch (emailErr) {
-      console.log("Receipt email failed to send, but order was saved.", emailErr);
+      console.log("Receipt email failed to send.", emailErr);
     }
 
     res.json({ success: true, message: "Payment successful", order: createdOrder });

@@ -17,8 +17,15 @@ const api = axios.create({
 });
 
 // ✅ Attach JWT token
+// ✅ Attach JWT token securely based on which panel the user is in
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  const token = localStorage.getItem("token");
+  // Check if the user is currently browsing the /admin pages
+  const isAdminPanel = window.location.pathname.startsWith("/admin");
+  
+  // Use the admin token for admin pages, and normal token for storefront
+  const token = isAdminPanel 
+    ? localStorage.getItem("admin-token") 
+    : localStorage.getItem("token");
 
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -43,6 +50,9 @@ export const authAPI = {
 
   resetPassword: (email: string, otp: string, newPassword: string) =>
     api.post("/auth/reset-password", { email, otp, newPassword }),
+
+  adminLogin: (email: string, password: string) =>
+    api.post("/auth/admin-login", { email, password }),
 };
 
 // ================= PRODUCTS =================
@@ -56,10 +66,15 @@ export const productsAPI = {
 
   getById: (id: string) => api.get(`/products/${id}`),
 
-  create: (data: any) => api.post("/products", data),
+  create: (data: FormData) => 
+    api.post("/products", data, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }),
 
-  update: (id: string, data: any) =>
-    api.put(`/products/${id}`, data),
+  update: (id: string, data: FormData) =>
+    api.put(`/products/${id}`, data, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }),
 
   delete: (id: string) => api.delete(`/products/${id}`),
 
@@ -103,13 +118,14 @@ export const ordersAPI = {
 
 // ================= PAYMENT =================
 export const paymentAPI = {
-  createOrder: (amount: number) =>
-    api.post("/payment/create-order", { amount }),
+  createOrder: (amount: number, selectedItemIds: string[]) =>
+    api.post("/payment/create-order", { amount, selectedItemIds }),
 
   verify: (data: {
     razorpay_order_id: string;
     razorpay_payment_id: string;
     razorpay_signature: string;
+    selectedItemIds: string[];
     shippingAddress: {
       address?: string;
       city?: string;

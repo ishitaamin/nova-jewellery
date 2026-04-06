@@ -11,7 +11,7 @@ const userSchema = new mongoose.Schema(
     email: {
       type: String,
       required: true,
-      unique: true,
+      
       lowercase: true,
       match: [/^\S+@\S+\.\S+$/, "Please use a valid email address"],
     },
@@ -49,6 +49,8 @@ userSchema.pre("save", async function () {
 userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
+
+userSchema.index({ email: 1, isAdmin: 1 }, { unique: true });
 
 const User = mongoose.model("User", userSchema);
 

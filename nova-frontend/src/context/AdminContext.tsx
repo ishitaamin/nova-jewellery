@@ -16,15 +16,17 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
 
   const adminLogin = async (email: string, password: string): Promise<boolean> => {
     try {
-      const { data } = await authAPI.login(email, password);
-      const isAdminUser = data.user?.role === "admin" || data.isAdmin || (email === "admin@nova.com");
-      if (isAdminUser) {
+      const { data } = await authAPI.adminLogin(email, password);
+      
+      if (data.isAdmin) {
         localStorage.setItem("nova-admin", "true");
-        localStorage.setItem("token", data.token);
+        // ✅ CHANGED: Save as "admin-token" so it doesn't overwrite normal users
+        localStorage.setItem("admin-token", data.token); 
         setIsAdmin(true);
         toast({ title: "Welcome, Admin", description: "Logged in successfully" });
         return true;
       }
+      
       toast({ title: "Login failed", description: "Not an admin account", variant: "destructive" });
       return false;
     } catch (err: any) {
@@ -36,10 +38,11 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
 
   const adminLogout = () => {
     localStorage.removeItem("nova-admin");
+    // ✅ ADDED: Clear the admin token properly on logout
+    localStorage.removeItem("admin-token"); 
     setIsAdmin(false);
     toast({ title: "Logged out", description: "Admin session ended" });
   };
-
   return (
     <AdminContext.Provider value={{ isAdmin, adminLogin, adminLogout }}>
       {children}

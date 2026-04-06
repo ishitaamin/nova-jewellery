@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { MapPin, Plus, Trash2, CheckCircle } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { addressAPI, paymentAPI } from "@/services/api";
 import ScrollReveal from "@/components/ScrollReveal";
+
 
 interface Address {
   _id: string; // Changed from 'id' to match DB
@@ -22,12 +23,24 @@ const Checkout = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedId, setSelectedId] = useState<string>("");
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ fullName: "", phone: "", address: "", city: "", state: "", pincode: "" });
   const [placing, setPlacing] = useState(false);
+
+
+  // ✅ Get selected IDs from Cart page. If none, fallback to full cart.
+  const state = location.state as { selectedIds?: string[] };
+  const selectedIds = state?.selectedIds || cart.map((i) => i.cartItemId);
+
+  // ✅ Create a new cart array containing ONLY selected items
+  const checkoutCart = cart.filter((item) => selectedIds.includes(item.cartItemId));
+  
+  // ✅ Calculate totals based ONLY on selected items
+  const checkoutTotal = checkoutCart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   // ✅ Fetch Addresses from DB
   useEffect(() => {
@@ -50,9 +63,10 @@ const Checkout = () => {
     );
   }
 
-  const shipping = cartTotal >= 5000 ? 0 : 499;
-  const discount = Math.round(cart.reduce((s, i) => s + (i.originalPrice - i.price) * i.quantity, 0));
-  const finalTotal = cartTotal + shipping;
+  // ✅ Use checkoutTotal instead of cartTotal
+  const shipping = checkoutTotal >= 5000 ? 0 : 499;
+  const discount = Math.round(checkoutCart.reduce((s, i) => s + (i.originalPrice - i.price) * i.quantity, 0));
+  const finalTotal = checkoutTotal + shipping;
 
   const addAddress = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,7 +101,7 @@ const Checkout = () => {
 
     try {
       // 1. Create Razorpay order on backend
-      const { data: paymentData } = await paymentAPI.createOrder(finalTotal);
+      const { data: paymentData } = await paymentAPI.createOrder(finalTotal, selectedIds);
       
       const options = {
         key: paymentData.key,
@@ -117,6 +131,7 @@ const Checkout = () => {
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
+              selectedItemIds: selectedIds,
               shippingAddress, // ✅ Pass it here
             });
             
@@ -141,6 +156,7 @@ const Checkout = () => {
       toast({ title: "Payment Error", description: "Could not initiate payment gateway.", variant: "destructive" });
       setPlacing(false);
     }
+
   };
 
   const formFields = [
@@ -151,6 +167,8 @@ const Checkout = () => {
     { key: "state", label: "State", span: false },
     { key: "pincode", label: "Pincode", span: false },
   ];
+
+
 
   return (
     <main className="pt-16 lg:pt-20">
@@ -234,7 +252,7 @@ const Checkout = () => {
             <div className="rounded-lg border bg-card p-6 shadow-sm lg:sticky lg:top-24">
               <h2 className="font-display text-xl font-semibold text-foreground">Order Summary</h2>
               <div className="mt-4 max-h-64 space-y-3 overflow-y-auto">
-                {cart.map((item) => (
+                {checkoutCart.map((item) => (
                   <div key={item.cartItemId} className="flex items-center gap-3">
                     <img src={item.image} alt={item.name} className="h-12 w-12 rounded object-cover shrink-0" />
                     <div className="flex-1 min-w-0">
