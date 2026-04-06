@@ -18,8 +18,7 @@ export const registerUser = async (req, res, next) => {
     console.log("Email sent:", email); 
     console.log("---------------------------------------");
 
-    const userExists = await User.findOne({ email });
-
+    const userExists = await User.findOne({ email, isAdmin: false });
     if (userExists) {
       // 🚨 DEBUGGING LOG: See EXACTLY what user it found in the database
       console.log("❌ ERROR: Found this user in DB:", userExists);
@@ -78,8 +77,7 @@ export const getUsers = async (req, res, next) => {
 export const forgotPassword = async (req, res, next) => {
   try {
     const { email } = req.body;
-    const user = await User.findOne({ email });
-
+    const user = await User.findOne({ email, isAdmin: false });
     if (!user) return res.status(404).json({ message: "User not found" });
 
     const otp = generateOTP();
@@ -103,8 +101,7 @@ export const forgotPassword = async (req, res, next) => {
 export const resetPassword = async (req, res, next) => {
   try {
     const { email, otp, newPassword } = req.body;
-    const user = await User.findOne({ email }).select("+password");
-
+    const user = await User.findOne({ email, isAdmin: false }).select("+password");
     if (!user) return res.status(404).json({ message: "User not found" });
     if (user.otp !== String(otp)) return res.status(400).json({ message: "Invalid OTP" });
     if (user.otpExpiry < Date.now()) return res.status(400).json({ message: "OTP expired" });
@@ -125,7 +122,7 @@ export const verifyOTP = async (req, res, next) => {
   try {
     const { email, otp } = req.body;
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email, isAdmin: false });
 
     if (!user) {
       const error = new Error("User not found");
@@ -159,7 +156,7 @@ export const verifyOTP = async (req, res, next) => {
       _id: user._id,
       name: user.name,
       email: user.email,
-      token: generateToken(user._id,"admin"),
+      token: generateToken(user._id, "user")
     });
   } catch (error) {
     next(error);
@@ -172,37 +169,26 @@ export const adminLoginUser = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email }).select("+password");
+    const user = await User.findOne({ email, isAdmin: true }).select("+password");
 
-    if (!user) {
-      const error = new Error("Invalid email or password");
-      error.statusCode = 401;
-      throw error;
-    }
+if (!user) {
+  throw new Error("Invalid email or password");
+}
 
-    // ✅ Enforce Admin Only
-    if (!user.isAdmin) {
-      const error = new Error("Access denied. Not authorized as an admin.");
-      error.statusCode = 403;
-      throw error;
-    }
+const isMatch = await user.matchPassword(password);
 
-    const isMatch = await user.matchPassword(password);
+if (!isMatch) {
+  throw new Error("Invalid email or password");
+}
 
-    if (!isMatch) {
-      const error = new Error("Invalid email or password");
-      error.statusCode = 401;
-      throw error;
-    }
-
-    res.json({
-      success: true,
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      isAdmin: user.isAdmin,
-      token: generateToken(user._id,"admin"),
-    });
+res.json({
+  success: true,
+  _id: user._id,
+  name: user.name,
+  email: user.email,
+  isAdmin: user.isAdmin,
+  token: generateToken(user._id, "admin"), // ✅ correct
+});
   } catch (error) {
     next(error);
   }
@@ -213,42 +199,30 @@ export const loginUser = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email }).select("+password");
+    const user = await User.findOne({ email, isAdmin: false }).select("+password");
 
-    if (!user) {
-      const error = new Error("Invalid email or password");
-      error.statusCode = 401;
-      throw error;
-    }
+if (!user) {
+  throw new Error("Invalid email or password");
+}
 
-    // ✅ ADD THIS HERE
-    if (!user.isVerified) {
-      const error = new Error("Please verify your email first");
-      error.statusCode = 401;
-      throw error;
-    }
-    if (user.isAdmin) {
-      const error = new Error("Admin credentials cannot be used here. Please use the Admin Portal.");
-      error.statusCode = 403;
-      throw error;
-    }
-    // Compare password
-    const isMatch = await user.matchPassword(password);
+if (!user.isVerified) {
+  throw new Error("Please verify your email first");
+}
 
-    if (!isMatch) {
-      const error = new Error("Invalid email or password");
-      error.statusCode = 401;
-      throw error;
-    }
+const isMatch = await user.matchPassword(password);
 
-    res.json({
-      success: true,
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      isAdmin: user.isAdmin,
-      token: generateToken(user._id,"admin"),
-    });
+if (!isMatch) {
+  throw new Error("Invalid email or password");
+}
+
+res.json({
+  success: true,
+  _id: user._id,
+  name: user.name,
+  email: user.email,
+  isAdmin: user.isAdmin,
+  token: generateToken(user._id, "user"), // ✅ FIXED
+});
   } catch (error) {
     next(error);
   }
