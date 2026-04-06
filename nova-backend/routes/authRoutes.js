@@ -59,6 +59,6 @@ router.post(
   adminLoginUser
 );
 
-router.get("/users", admin, getUsers);
+router.get("/users", protect,admin, getUsers);
 
 export default router;

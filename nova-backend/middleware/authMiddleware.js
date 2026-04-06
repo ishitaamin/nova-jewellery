@@ -10,9 +10,8 @@ export const protect = async (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    if (decoded.role !== "user") {
-      throw new Error("Only users allowed");
-    }
+    // ✅ REMOVE THIS RESTRICTION
+    // if (decoded.role !== "user") throw new Error("Only users allowed");
 
     req.user = await User.findById(decoded.id).select("-password");
 
@@ -23,7 +22,6 @@ export const protect = async (req, res, next) => {
     res.status(401).json({ message: err.message });
   }
 };
-
 
 // 🛡️ Protect Admin Routes
 export const admin = async (req, res, next) => {
