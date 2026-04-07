@@ -1,8 +1,13 @@
 # 💎 NOVA Jewellery | Full-Stack MERN E-Commerce
 
+![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![Node.js](https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB-4EA94B?style=for-the-badge&logo=mongodb&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
+
 A modern, luxury e-commerce platform built with the MERN stack. NOVA Jewellery provides a seamless shopping experience for customers and a powerful management dashboard for administrators.  
 
-🚀 Built with real-world production features like authentication, payments, admin dashboard, and scalable architecture.
+🚀 **[View Live Demo](#)** *(Add your deployed link here)*
 
 ---
 
@@ -25,7 +30,7 @@ A modern, luxury e-commerce platform built with the MERN stack. NOVA Jewellery p
 
 ## 🛠️ Technology Stack
 
-### Frontend (`nova-frontend`)
+**Frontend (`nova-frontend`)**
 * React 18 & Vite
 * TypeScript
 * Tailwind CSS & Shadcn UI
@@ -33,7 +38,7 @@ A modern, luxury e-commerce platform built with the MERN stack. NOVA Jewellery p
 * TanStack React Query
 * React Router DOM
 
-### Backend (`nova-backend`)
+**Backend (`nova-backend`)**
 * Node.js & Express.js
 * MongoDB & Mongoose
 * JWT & bcrypt.js (Authentication & Security)
@@ -50,13 +55,13 @@ Follow these instructions to set up the project locally.
 ### 📌 Prerequisites
 * Node.js installed
 * MongoDB (Local or Atlas)
-* Razorpay Account
+* Razorpay Account (Test Mode)
 * Cloudinary Account
 * Gmail App Password (for email service)
 
 ---
 
-## 📥 1. Clone Repository
+### 📥 1. Clone Repository
 
 ```bash
 git clone https://github.com/YOUR_USERNAME/nova-jewellery.git
