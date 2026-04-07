@@ -7,7 +7,7 @@
 
 A modern, luxury e-commerce platform built with the MERN stack. NOVA Jewellery provides a seamless shopping experience for customers and a powerful management dashboard for administrators.  
 
-🚀 **[View Live Demo](https://novajewellery.vercel.app/)
+🚀 [View Live Demo](https://novajewellery.vercel.app/)
 
 ---
 
